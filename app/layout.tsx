@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MOOD Studio",
-  description: "셀러를 위한 포즈·장소 이미지 편집 스튜디오",
+  title: "희태쇼핑몰도구모음",
+  description: "쇼핑몰 이미지 편집·상세페이지·마진 계산·판매 수익기록",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
