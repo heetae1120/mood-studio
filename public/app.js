@@ -43,11 +43,26 @@ export const editor = {
   setBusy(value){busy=value;$('#remove-bg').disabled=value},
   getRatio(){return {'1':'1:1','1.25':'4:5','1.333333':'3:4'}[$('#ratio').value] || '1:1'},
   apply(image){aiImage=image;cutout=null;$('#preview-status').textContent=image?'AI 편집 결과가 적용되었어요':'원본 사진을 사용 중이에요';render()},
+  async selectBackground(photo){
+    if(busy)return false;
+    const request=++backgroundRequest,image=new Image();
+    try{
+      await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=photo.image});
+      if(request!==backgroundRequest||busy)return false;
+      clearCustomBackground();customBackground=image;
+      $('#custom-bg-preview').src=photo.thumbnail;$('#custom-bg-name').textContent=photo.name;$('#custom-bg-state').hidden=false;
+      if(cutout){render();toast('선택한 사진을 배경으로 합성했어요.')}
+      else toast('배경을 선택했어요. 아래 ‘선택한 배경으로 바꾸기’를 눌러주세요.');
+      return true;
+    }catch{toast('배경사진을 불러오지 못했어요. 다시 선택해주세요.');return false}
+  },
   toast
 };
 import('./ai-studio.js').then(({initAIStudio})=>initAIStudio(editor)).catch(()=>toast('AI 편집 도구를 불러오지 못했어요. 새로고침해주세요.'));
 
-function clearCustomBackground(){customBackground=null;if(customBackgroundURL)URL.revokeObjectURL(customBackgroundURL);customBackgroundURL=null;$('#custom-bg-state').hidden=true;$('#custom-bg-preview').removeAttribute('src')}
+let backgroundRequest=0;
+function clearCustomBackground(){backgroundRequest++;customBackground=null;if(customBackgroundURL)URL.revokeObjectURL(customBackgroundURL);customBackgroundURL=null;$('#custom-bg-state').hidden=true;$('#custom-bg-preview').removeAttribute('src');window.dispatchEvent(new Event('mood-background-cleared'))}
 $('#custom-background').onchange=async e=>{const file=e.target.files[0];if(!file)return;if(busy){toast('진행 중인 이미지 처리가 끝난 후 배경을 변경해주세요.');e.target.value='';return}if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>15*1024*1024){toast('15MB 이하 JPG, PNG, WEBP 배경사진을 선택해주세요.');e.target.value='';return}const url=URL.createObjectURL(file),image=new Image();try{await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src=url});if(image.width*image.height>40000000)throw new Error();clearCustomBackground();customBackground=image;customBackgroundURL=url;$('#custom-bg-preview').src=url;$('#custom-bg-name').textContent=file.name;$('#custom-bg-state').hidden=false;if(cutout){render();toast('내 배경사진을 합성했어요.')}else toast('배경사진을 준비했어요. 아래 배경 바꾸기 버튼을 눌러주세요.')}catch{URL.revokeObjectURL(url);toast('배경사진을 불러올 수 없어요. 이미지 해상도와 파일을 확인해주세요.')}e.target.value=''};
 $('#clear-custom-bg').onclick=()=>{if(busy)return;clearCustomBackground();render()};
 import('./revenue.js').then(({initRevenue})=>initRevenue(toast)).catch(()=>toast('수익기록 도구를 불러오지 못했어요. 새로고침해주세요.'));
+import('./background-gallery.js').then(({initBackgroundGallery})=>initBackgroundGallery(editor)).catch(()=>toast('배경 모음을 불러오지 못했어요. 새로고침해주세요.'));
